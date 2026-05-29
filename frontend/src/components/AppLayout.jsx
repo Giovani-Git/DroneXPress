@@ -1,0 +1,267 @@
+import { useState, useRef, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Package, Cpu, User, Shield, LogOut, Menu, X, Bell, BellRing, Clock, Package as PackageIcon, Truck, CheckCircle, XCircle, HelpCircle, MessageSquare, Sun, Moon } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { useNotifications } from '../contexts/NotificationContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { api } from '../api';
+
+const navKeys = [
+  { to: '/dashboard', key: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/deliveries', key: 'deliveries', icon: Package, label: 'Entregas' },
+  { to: '/drones', key: 'drones', icon: Cpu, label: 'Drones' },
+  { to: '/reports', key: 'reports', icon: MessageSquare, label: 'Reports' },
+  { to: '/profile', key: 'profile', icon: User, label: 'Perfil' },
+  { to: '/support', key: 'support', icon: HelpCircle, label: 'Suporte' },
+];
+
+export default function AppLayout({ children }) {
+  const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const { notifications, unreadCount, addNotification, markAllRead, clearAll } = useNotifications();
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef(null);
+  const generatedRef = useRef(false);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setNotifOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  useEffect(() => {
+    if (!user || generatedRef.current) return;
+    generatedRef.current = true;
+
+    if (localStorage.getItem('notifications_cleared')) return;
+
+    clearAll();
+
+    api.getDeliveries().then((deliveries) => {
+      const activeStatuses = ['em_andamento', 'coletado', 'em_transito', 'proximo_da_entrega'];
+      const active = deliveries.filter((d) => activeStatuses.includes(d.status));
+      if (active.length > 0) {
+        addNotification({
+          icon: 'em_transito',
+          title: `${active.length} entrega(s) ativa(s)`,
+          message: active.slice(0, 3).map((d) => `${d.origin} -> ${d.destination}`).join(', ') + (active.length > 3 ? ` e mais ${active.length - 3}` : ''),
+          link: '/deliveries',
+        });
+      }
+
+      deliveries.filter((d) => d.status === 'entregue').forEach((d) => {
+        addNotification({ icon: 'entregue', title: 'Entrega concluida!', message: `Sua entrega de ${d.origin} para ${d.destination} foi entregue.`, link: `/deliveries/${d.id}` });
+      });
+
+      deliveries.filter((d) => d.status === 'cancelado').forEach((d) => {
+        addNotification({ icon: 'cancelado', title: 'Entrega cancelada', message: `A entrega de ${d.origin} foi cancelada.`, link: `/deliveries/${d.id}` });
+      });
+    }).catch((err) => console.error('Erro ao carregar entregas para notificacoes:', err));
+
+    api.getReports().then((reports) => {
+      reports.filter((r) => r.status === 'respondido').forEach((r) => {
+        addNotification({ icon: 'suporte', title: 'Reporte respondido', message: `Seu reporte sobre "${r.typeLabel || r.type}" foi respondido pela equipe.`, link: '/reports' });
+      });
+    }).catch((err) => console.error('Erro ao carregar reports para notificacoes:', err));
+
+    if (user.role === 'admin') {
+      api.admin.getReports().then((reports) => {
+        const open = reports.filter((r) => r.status === 'aberto');
+        if (open.length > 0) {
+          addNotification({ icon: 'suporte', title: `${open.length} reporte(s) pendente(s)`, message: `Ha ${open.length} reporte(s) de usuarios aguardando resposta.`, link: '/admin' });
+        }
+      }).catch((err) => console.error('Erro ao carregar reports admin:', err));
+    }
+  }, [user]);
+
+  const notifIcons = {
+    pendente: Clock, em_andamento: Truck, coletado: PackageIcon,
+    em_transito: Truck, proximo_da_entrega: PackageIcon, entregue: CheckCircle, cancelado: XCircle,
+    suporte: HelpCircle, erro: XCircle,
+  };
+
+  function handleLogout() {
+    clearAll();
+    localStorage.removeItem('notifications_cleared');
+    generatedRef.current = false;
+    logout();
+    navigate('/');
+  }
+
+  const isAdmin = user?.role === 'admin';
+
+  return (
+    <div className="min-h-screen bg-dark-bg flex">
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      <aside className={`fixed top-0 left-0 z-50 h-full w-72 bg-dark-card/95 backdrop-blur-xl border-r border-white/5 transform transition-transform duration-300 lg:translate-x-0 lg:static lg:z-auto ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex flex-col h-full">
+          <div className="flex items-center justify-between px-6 h-16 lg:h-20 border-b border-white/5">
+            <Link to="/" className="flex items-center gap-3 text-2xl font-bold neon-text">
+              <div className="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center text-white text-base font-bold">DX</div>
+              DroneXPress
+            </Link>
+            <button className="lg:hidden text-gray-400 hover:text-white" onClick={() => setSidebarOpen(false)}>
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
+            {navKeys.map((item) => {
+              const Icon = item.icon;
+              const active = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex items-center gap-4 px-5 py-4 rounded-xl text-base font-medium transition-all duration-200 ${
+                    active
+                      ? 'bg-neon-blue/10 text-neon-blue border border-neon-blue/20'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
+                  }`}
+                >
+                  <Icon className="w-6 h-6 flex-shrink-0" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center gap-4 px-5 py-4 rounded-xl text-base font-medium transition-all duration-200 ${
+                  location.pathname === '/admin'
+                    ? 'bg-neon-blue/10 text-neon-blue border border-neon-blue/20'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
+                }`}
+              >
+                <Shield className="w-6 h-6 flex-shrink-0" />
+                <span>Admin</span>
+              </Link>
+            )}
+          </nav>
+
+          <div className="px-3 py-4 border-t border-white/5">
+            <div className="flex items-center gap-3 px-4 py-3 mb-2">
+              <div className="w-9 h-9 rounded-full gradient-bg flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-white text-sm font-medium truncate">{user?.name}</p>
+                <p className="text-gray-500 text-xs truncate">{user?.email}</p>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-red-400 hover:bg-red-500/10 transition-all duration-200 border border-transparent hover:border-red-500/20"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>Sair</span>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <div className="flex-1 flex flex-col min-h-screen lg:ml-0">
+        <header className="sticky top-0 z-30 h-16 lg:h-20 bg-dark-bg/95 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-6 lg:px-8">
+          <div className="flex items-center gap-4">
+            <button className="lg:hidden text-gray-400 hover:text-white" onClick={() => setSidebarOpen(true)}>
+              <Menu className="w-6 h-6" />
+            </button>
+            <nav className="hidden sm:flex items-center gap-2 text-sm text-gray-500">
+              <span className="text-white font-medium capitalize">
+                {location.pathname === '/dashboard' && 'Dashboard'}
+                {location.pathname.startsWith('/deliveries') && (location.pathname === '/deliveries/new' ? 'Nova Entrega' : location.pathname === '/deliveries' ? 'Entregas' : 'Detalhes da Entrega')}
+                {location.pathname.startsWith('/drones') && 'Drones'}
+                {location.pathname.startsWith('/profile') && 'Perfil'}
+                {location.pathname.startsWith('/admin') && 'Admin'}
+                {location.pathname.startsWith('/support') && 'Suporte'}
+                {location.pathname.startsWith('/reports') && 'Reports'}
+              </span>
+            </nav>
+          </div>
+          <div className="flex items-center gap-5">
+            <button onClick={toggleTheme} className="p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all hidden sm:block" title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}>
+              {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+            <div className="relative" ref={notifRef}>
+              <button className="relative text-gray-400 hover:text-white transition-colors" onClick={() => { setNotifOpen(!notifOpen); if (!notifOpen) markAllRead(); }}>
+                {unreadCount > 0 ? <BellRing className="w-5 h-5 animate-pulse-glow text-neon-blue" /> : <Bell className="w-5 h-5" />}
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] flex items-center justify-center bg-neon-blue text-white text-xs font-bold rounded-full px-1.5">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              {notifOpen && (
+                <div className="absolute right-0 top-full mt-3 w-96 sm:w-[420px] glass-card rounded-2xl overflow-hidden z-50 animate-fade-in shadow-2xl border border-white/10">
+                  <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between">
+                    <h4 className="text-white font-semibold text-base">Notificacoes</h4>
+                    {notifications.length > 0 && (
+                      <div className="flex items-center gap-3">
+                        <button onClick={clearAll} className="text-sm text-red-400 hover:underline">
+                          Limpar
+                        </button>
+                        <button onClick={markAllRead} className="text-sm text-neon-blue hover:underline">
+                          Marcar como lidas
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="px-6 py-12 text-center text-gray-500 text-base">
+                        <Bell className="w-10 h-10 mx-auto mb-4 text-gray-600" />
+                        Nenhuma notificacao
+                      </div>
+                    ) : (
+                      notifications.map((n) => {
+                        const Icon = notifIcons[n.icon] || Bell;
+                        return (
+                          <div key={n.id}
+                            onClick={() => { if (n.link) navigate(n.link); setNotifOpen(false); }}
+                            className={`px-6 py-5 border-b border-white/5 hover:bg-white/[0.03] transition-colors cursor-pointer ${!n.read ? 'bg-neon-blue/[0.03]' : ''}`}>
+                            <div className="flex items-start gap-4">
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                                n.icon === 'entregue' ? 'bg-emerald-500/20' : n.icon === 'cancelado' ? 'bg-red-500/20' : 'bg-neon-blue/10'
+                              }`}>
+                                <Icon className={`w-5 h-5 ${n.icon === 'entregue' ? 'text-emerald-400' : n.icon === 'cancelado' ? 'text-red-400' : 'text-neon-blue'}`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white text-base font-medium leading-snug">{n.title}</p>
+                                <p className="text-gray-400 text-sm mt-1 leading-relaxed">{n.message}</p>
+                                <p className="text-gray-600 text-xs mt-1.5">{new Date(n.created_at).toLocaleString('pt-BR')}</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="hidden sm:flex items-center gap-1.5 text-sm text-gray-400 max-w-[200px] lg:max-w-[300px]">
+              <span className="truncate">Bem-vindo, <strong className="text-white">{user?.name?.split(' ')[0]}</strong></span>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 px-6 lg:px-8 py-8">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
