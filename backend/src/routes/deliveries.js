@@ -76,8 +76,8 @@ function totalRouteDist(originCity, destCity) {
 
 router.post('/simulate', authMiddleware, (req, res) => {
   const { origin, destination, weight } = req.body;
-  if (!origin?.cidade || !destination?.cidade || !weight) {
-    return res.status(400).json({ error: 'Origem, destino e peso sao obrigatorios' });
+  if (!origin?.cidade || !destination?.cidade || !weight || weight <= 0 || weight > 100) {
+    return res.status(400).json({ error: 'Origem, destino e peso (1-100kg) sao obrigatorios' });
   }
 
   const route = totalRouteDist(origin.cidade, destination.cidade);
@@ -124,8 +124,8 @@ router.post('/simulate', authMiddleware, (req, res) => {
 
 router.post('/', authMiddleware, (req, res) => {
   const { origin, destination, weight, drone_id, description, company } = req.body;
-  if (!origin?.cidade || !destination?.cidade || !weight) {
-    return res.status(400).json({ error: 'Origem, destino e peso sao obrigatorios' });
+  if (!origin?.cidade || !destination?.cidade || !weight || weight <= 0 || weight > 100) {
+    return res.status(400).json({ error: 'Origem, destino e peso (1-100kg) sao obrigatorios' });
   }
 
   const db = getDB();

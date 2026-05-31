@@ -1,4 +1,4 @@
-const API = 'https://dronexpress.onrender.com/api';
+const API = import.meta.env.VITE_API_URL || '/api';
 
 function getToken() {
   return localStorage.getItem('token');

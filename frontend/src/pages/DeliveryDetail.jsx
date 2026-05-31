@@ -84,14 +84,14 @@ export default function DeliveryDetail() {
 
       if (pct >= 75 && !milestonesRef.current.proximo) {
         milestonesRef.current.proximo = true;
-        api.updateDeliveryStatus(delivery.id, 'proximo_da_entrega').catch(() => {});
+        api.updateDeliveryStatus(delivery.id, 'proximo_da_entrega').catch((err) => console.error('Erro ao atualizar status proximo_da_entrega:', err));
       }
 
       if (pct >= 100 && !milestonesRef.current.entregue) {
         milestonesRef.current.entregue = true;
         setLocalStatus('entregue');
         addNotification({ icon: 'entregue', title: 'Entrega concluida!', message: 'Seu pacote foi entregue com sucesso.' });
-        api.updateDeliveryStatus(delivery.id, 'entregue').catch(() => {});
+        api.updateDeliveryStatus(delivery.id, 'entregue').catch((err) => console.error('Erro ao atualizar status entregue:', err));
         localStorage.removeItem(startKey);
         return;
       }
