@@ -1,4 +1,4 @@
-const API = import.meta.env.VITE_API_URL || '/api';
+const API = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://dronexpress.onrender.com/api' : '/api');
 
 function getToken() {
   return localStorage.getItem('token');
@@ -30,7 +30,7 @@ async function request(method, path, body) {
     data = JSON.parse(text);
   } catch {
     throw new Error(
-      `Erro inesperado do servidor (${res.status}): ${text.slice(0, 80)}`
+      `Erro inesperado do servidor (${res.status}): ${text.slice(0, 200)}`
     );
   }
 
