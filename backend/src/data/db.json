@@ -46,6 +46,24 @@
       "notifSms": false,
       "notifPromo": false,
       "language": "pt-BR"
+    },
+    {
+      "id": "b38762b7-11b5-401c-83bd-4d8122e03146",
+      "name": "GIovani Sehnem",
+      "email": "giovani@gmail.com",
+      "phone": "(54) 95181-6441",
+      "company": "Cesurg",
+      "address": {
+        "rua": "Rua Jose",
+        "numero": "666",
+        "bairro": "Joao",
+        "cidade": "Marau",
+        "cep": "99150-000"
+      },
+      "paymentMethod": "cartao",
+      "password": "$2a$10$R2TSqFnWmep4o5ezCOYjzOGTf7hlhEHzHt97DjPs2H3xMhZdLaJcS",
+      "role": "user",
+      "created_at": "2026-06-18T22:41:39.344Z"
     }
   ],
   "drones": [
@@ -54,7 +72,7 @@
       "name": "DJI FlyCart 30",
       "model": "FC30",
       "speed": 80,
-      "battery": 100,
+      "battery": 70,
       "status": "disponivel",
       "max_weight": 30
     },
@@ -63,8 +81,8 @@
       "name": "DJI FlyCart 100",
       "model": "FC100",
       "speed": 95,
-      "battery": 100,
-      "status": "disponivel",
+      "battery": 81,
+      "status": "em_entrega",
       "max_weight": 50
     },
     {
@@ -72,8 +90,8 @@
       "name": "Wingcopter 198",
       "model": "WC198",
       "speed": 110,
-      "battery": 100,
-      "status": "em_entrega",
+      "battery": 70,
+      "status": "disponivel",
       "max_weight": 75
     },
     {
@@ -81,7 +99,7 @@
       "name": "Zipline P2",
       "model": "P2 Zip",
       "speed": 70,
-      "battery": 100,
+      "battery": 81,
       "status": "disponivel",
       "max_weight": 15
     },
@@ -99,46 +117,196 @@
       "name": "DHL Parcelcopter",
       "model": "PC-4000",
       "speed": 130,
-      "battery": 100,
-      "status": "disponivel",
+      "battery": 74,
+      "status": "em_entrega",
       "max_weight": 100
     }
   ],
   "deliveries": [
     {
-      "id": "57a9d283-061f-42df-8415-6725c4180901",
-      "user_id": "32ff0ad5-4124-4e5a-a199-9e18ef940e37",
-      "origin": "Rua Pinto, 568 - Bola, Marau - CEP 91500-000",
-      "destination": "Rua Rola, 865 - Grossa, Porto Alegre - CEP 91999-999",
+      "id": "5b873c0b-2478-4721-bfd7-5aa8221c8153",
+      "user_id": "b38762b7-11b5-401c-83bd-4d8122e03146",
+      "origin": "Rua dos Ipês Dourados, 12 - Jardim das Neblinas, Passo Fundo - CEP 99010-000",
+      "destination": "Rua Lua Crescente, 13 - Vila Cristalina, Marau - CEP 99150-000",
       "originAddress": {
-        "rua": "Rua Pinto",
-        "numero": "568",
-        "bairro": "Bola",
-        "cidade": "Marau",
-        "cep": "91500-000"
+        "rua": "Rua dos Ipês Dourados",
+        "numero": "12",
+        "bairro": "Jardim das Neblinas",
+        "cidade": "Passo Fundo",
+        "cep": "99010-000"
       },
       "destAddress": {
-        "rua": "Rua Rola",
-        "numero": "865",
-        "bairro": "Grossa",
-        "cidade": "Porto Alegre",
-        "cep": "91999-999"
+        "rua": "Rua Lua Crescente",
+        "numero": "13",
+        "bairro": "Vila Cristalina",
+        "cidade": "Marau",
+        "cep": "99150-000"
       },
-      "weight": 75,
-      "distance": 228.7,
-      "estimated_time": 172,
-      "cost": 476.94,
-      "description": "Carga de drogas",
+      "weight": 10,
+      "distance": 29.1,
+      "estimated_time": 22,
+      "cost": 74.92,
+      "description": "Remedio",
       "company": "",
-      "leg1Dist": 29.1,
-      "leg2Dist": 199.6,
-      "status": "coletado",
+      "leg1Dist": 0,
+      "leg2Dist": 29.1,
+      "status": "entregue",
+      "drone_id": "47a0d802-5899-47c3-9416-03c76468d842",
+      "drone_name": "Zipline P2",
+      "drone_model": "P2 Zip",
+      "drone_speed": 70,
+      "created_at": "2026-06-18T22:44:25.410Z"
+    },
+    {
+      "id": "05fe3ee4-41d8-4aa5-b111-0054d434a11b",
+      "user_id": "b38762b7-11b5-401c-83bd-4d8122e03146",
+      "origin": "Rua Caminho das Estrelas, 15 - Parque dos Ventos, Passo Fundo - CEP 99010-000",
+      "destination": "Rua Brisa da Manhã, 17 - Nova Aurora, Marau - CEP 99150-000",
+      "originAddress": {
+        "rua": "Rua Caminho das Estrelas",
+        "numero": "15",
+        "bairro": "Parque dos Ventos",
+        "cidade": "Passo Fundo",
+        "cep": "99010-000"
+      },
+      "destAddress": {
+        "rua": "Rua Brisa da Manhã",
+        "numero": "17",
+        "bairro": "Nova Aurora",
+        "cidade": "Marau",
+        "cep": "99150-000"
+      },
+      "weight": 30,
+      "distance": 29.1,
+      "estimated_time": 22,
+      "cost": 124.92,
+      "description": "Roupas",
+      "company": "",
+      "leg1Dist": 0,
+      "leg2Dist": 29.1,
+      "status": "entregue",
+      "drone_id": "a02ee1b3-ac89-4764-a24e-fcaa42b70d40",
+      "drone_name": "DJI FlyCart 30",
+      "drone_model": "FC30",
+      "drone_speed": 80,
+      "created_at": "2026-06-18T22:47:10.002Z"
+    },
+    {
+      "id": "79e76604-8057-4944-948c-d2746f77135a",
+      "user_id": "b38762b7-11b5-401c-83bd-4d8122e03146",
+      "origin": "Rua Toze, 67 - Cores, Passo Fundo - CEP 99010-000",
+      "destination": "Rua Zezao, 76 - Tintas, Marau - CEP 99150-000",
+      "originAddress": {
+        "rua": "Rua Toze",
+        "numero": "67",
+        "bairro": "Cores",
+        "cidade": "Passo Fundo",
+        "cep": "99010-000"
+      },
+      "destAddress": {
+        "rua": "Rua Zezao",
+        "numero": "76",
+        "bairro": "Tintas",
+        "cidade": "Marau",
+        "cep": "99150-000"
+      },
+      "weight": 70,
+      "distance": 29.1,
+      "estimated_time": 22,
+      "cost": 224.92,
+      "description": "10 Xbox",
+      "company": "",
+      "company_cnpj": "",
+      "leg1Dist": 0,
+      "leg2Dist": 29.1,
+      "status": "entregue",
       "drone_id": "9a00efe2-7aa5-423e-b44e-98c38dcb3331",
       "drone_name": "Wingcopter 198",
       "drone_model": "WC198",
       "drone_speed": 110,
-      "created_at": "2026-05-29T18:44:34.378Z"
+      "created_at": "2026-06-18T23:10:49.131Z"
+    },
+    {
+      "id": "51a9db3d-9593-4d64-9bcf-e01ee3394898",
+      "user_id": "b38762b7-11b5-401c-83bd-4d8122e03146",
+      "origin": "Rua Test, 84 - Test, Marau - CEP 99150-000",
+      "destination": "Rua Test2, 59 - TestB, Carazinho - CEP 99500-000",
+      "originAddress": {
+        "rua": "Rua Test",
+        "numero": "84",
+        "bairro": "Test",
+        "cidade": "Marau",
+        "cep": "99150-000"
+      },
+      "destAddress": {
+        "rua": "Rua Test2",
+        "numero": "59",
+        "bairro": "TestB",
+        "cidade": "Carazinho",
+        "cep": "99500-000"
+      },
+      "weight": 100,
+      "distance": 89.2,
+      "estimated_time": 67,
+      "cost": 372.04,
+      "description": "Pesos de Treino",
+      "company": "",
+      "company_cnpj": "",
+      "leg1Dist": 29.1,
+      "leg2Dist": 60.1,
+      "status": "proximo_ao_destino",
+      "drone_id": "ce5d3df3-9f9a-4985-a48e-8478519db7f7",
+      "drone_name": "DHL Parcelcopter",
+      "drone_model": "PC-4000",
+      "drone_speed": 130,
+      "created_at": "2026-06-18T23:18:03.899Z"
+    },
+    {
+      "id": "6b44080e-1eaa-45a3-a33e-f648fe85dada",
+      "user_id": "admin-001",
+      "origin": "dsd, 545 - dasd, Passo Fundo - CEP 99010-000",
+      "destination": "dsad, 454 - asdsad, Marau - CEP 99150-000",
+      "originAddress": {
+        "rua": "dsd",
+        "numero": "545",
+        "bairro": "dasd",
+        "cidade": "Passo Fundo",
+        "cep": "99010-000"
+      },
+      "destAddress": {
+        "rua": "dsad",
+        "numero": "454",
+        "bairro": "asdsad",
+        "cidade": "Marau",
+        "cep": "99150-000"
+      },
+      "weight": 45,
+      "distance": 29.1,
+      "estimated_time": 22,
+      "cost": 162.42,
+      "description": "1",
+      "company": "",
+      "company_cnpj": "",
+      "leg1Dist": 0,
+      "leg2Dist": 29.1,
+      "status": "coleta_realizada",
+      "drone_id": "0ffc88da-d1d0-4e30-b54e-98bd614fa14a",
+      "drone_name": "DJI FlyCart 100",
+      "drone_model": "FC100",
+      "drone_speed": 95,
+      "created_at": "2026-06-18T23:41:15.156Z"
     }
   ],
-  "reports": []
+  "reports": [
+    {
+      "id": "13fcc750-1df5-4901-9012-a364b0a2b3a5",
+      "delivery_id": "5b873c0b-2478-4721-bfd7-5aa8221c8153",
+      "user_id": "b38762b7-11b5-401c-83bd-4d8122e03146",
+      "type": "problema",
+      "typeLabel": "problema",
+      "description": "Jogaram uma pedra no meu drone",
+      "status": "aberto",
+      "created_at": "2026-06-18T23:09:27.328Z"
+    }
+  ]
 }

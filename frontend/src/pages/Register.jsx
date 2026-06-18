@@ -1,11 +1,19 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Star, User, Mail, Lock, Phone, Building2, MapPin, CreditCard, ArrowRight, ArrowLeft, Check } from 'lucide-react';
+import { Star, User, Mail, Lock, Phone, Building2, MapPin, ArrowRight, ArrowLeft, Check } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { onlyLetters, onlyNumbers, onlyLettersAndNumbers, formatCEP, formatPhone, validatePhone } from '../utils/validation';
 
 const emptyAddress = { rua: '', numero: '', bairro: '', cidade: '', cep: '' };
+
+const CITY_OPTIONS = ['Passo Fundo', 'Marau', 'Carazinho', 'Soledade', 'Erechim', 'Caxias do Sul', 'Porto Alegre'];
+
+const cityCEP = {
+  'passo fundo': '99010-000', 'marau': '99150-000', 'carazinho': '99500-000',
+  'soledade': '99300-000', 'erechim': '99700-000', 'caxias do sul': '95010-000',
+  'porto alegre': '90010-000',
+};
 
 export default function Register() {
   const [step, setStep] = useState(1);
@@ -16,14 +24,45 @@ export default function Register() {
   const [phone, setPhone] = useState('');
   const [company, setCompany] = useState('');
   const [address, setAddress] = useState({ ...emptyAddress });
-  const [paymentMethod, setPaymentMethod] = useState('cartao');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { user, login } = useAuth();
   const navigate = useNavigate();
 
+  if (user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-dark-bg px-6 pt-24 pb-16">
+        <div className="glass-card rounded-3xl p-10 w-full max-w-md text-center">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/15 flex items-center justify-center mx-auto mb-5">
+            <User className="w-8 h-8 text-amber-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-3">Voce ja esta logado</h2>
+          <p className="text-gray-400 mb-6 leading-relaxed">
+            Para criar uma nova conta ou trocar de usuario, primeiro saia da conta atual.
+          </p>
+          <div className="flex flex-col gap-3">
+            <Link to="/dashboard"
+              className="w-full py-3.5 rounded-xl gradient-bg text-white font-semibold hover:opacity-90 transition-all block text-center">
+              Ir para o Dashboard
+            </Link>
+            <Link to="/login"
+              className="w-full py-3.5 rounded-xl border border-white/10 text-gray-300 font-medium hover:bg-white/5 transition-all block text-center">
+              Sair e trocar de conta
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   function updateAddress(field, value) {
-    setAddress((prev) => ({ ...prev, [field]: value }));
+    setAddress((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === 'cidade' && cityCEP[value.toLowerCase()] && !prev.cep) {
+        next.cep = cityCEP[value.toLowerCase()];
+      }
+      return next;
+    });
   }
 
   function validateStep1() {
@@ -57,7 +96,7 @@ export default function Register() {
     try {
       const data = await api.register(name, email, password);
       login(data.user, data.token);
-      const payload = { name, phone, company, address, paymentMethod };
+      const payload = { name, phone, company, address };
       await api.updateProfile(payload).catch(() => {});
       navigate('/dashboard');
     } catch (err) {
@@ -166,28 +205,16 @@ export default function Register() {
                   <input type="text" value={address.bairro} onChange={(e) => updateAddress('bairro', onlyLetters(e.target.value))}
                     className="px-5 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-neon-blue text-base" placeholder="Bairro" required />
                   <input type="text" value={address.cidade} onChange={(e) => updateAddress('cidade', onlyLetters(e.target.value))}
-                    className="px-5 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-neon-blue text-base" placeholder="Cidade" required />
+                    className="px-5 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-neon-blue text-base" placeholder="Cidade" list="reg-cities" required />
+                  <datalist id="reg-cities">
+                    {CITY_OPTIONS.map((s) => <option key={s} value={s} />)}
+                  </datalist>
                   <input type="text" value={address.cep} onChange={(e) => updateAddress('cep', formatCEP(e.target.value))}
                     className="px-5 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-neon-blue text-base" placeholder="CEP" inputMode="numeric" maxLength={9} />
                 </div>
               </div>
             </div>
-            <div>
-              <label className="flex items-center gap-2 text-sm text-gray-400 mb-2">
-                <CreditCard className="w-4 h-4" /> Metodo de Pagamento
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                {['cartao', 'pix', 'boleto'].map((m) => (
-                  <button key={m} type="button" onClick={() => setPaymentMethod(m)}
-                    className={`px-4 py-3 rounded-xl text-sm font-medium transition-all border ${
-                      paymentMethod === m ? 'bg-neon-blue/10 text-neon-blue border-neon-blue/30' : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/20'
-                    }`}>
-                    {m === 'cartao' ? 'Cartao' : m === 'pix' ? 'Pix' : 'Boleto'}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-2">
               <button type="button" onClick={() => setStep(1)}
                 className="px-6 py-3.5 rounded-xl border border-white/10 text-gray-300 hover:bg-white/5 transition-all duration-200 text-base flex items-center gap-2">
                 <ArrowLeft className="w-4 h-4" /> Voltar

@@ -6,11 +6,13 @@ import { Users, Cpu, Package, Trash2, Shield, UserX, ArrowUpDown, CheckCircle, X
 const COLORS = ['#00d4ff', '#7b61ff', '#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff'];
 
 const statusLabels = {
-  pendente: 'Pendente', em_andamento: 'Em Andamento', coletado: 'Coletado',
-  em_transito: 'Em Transito', proximo_da_entrega: 'Proximo', entregue: 'Entregue', cancelado: 'Cancelado',
+  pedido_criado: 'Pedido Criado', aguardando_aprovacao: 'Aguardando Aprovacao',
+  drone_selecionado: 'Drone Selecionado', preparando_coleta: 'Preparando Coleta',
+  coleta_realizada: 'Coleta Realizada', em_rota: 'Em Rota',
+  proximo_ao_destino: 'Proximo ao Destino', entregue: 'Entregue', cancelado: 'Cancelado',
 };
 
-const statusOptions = ['pendente', 'em_andamento', 'coletado', 'em_transito', 'proximo_da_entrega', 'entregue', 'cancelado'];
+const statusOptions = ['pedido_criado', 'aguardando_aprovacao', 'drone_selecionado', 'preparando_coleta', 'coleta_realizada', 'em_rota', 'proximo_ao_destino', 'entregue', 'cancelado'];
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -180,18 +182,30 @@ export default function AdminDashboard() {
       {tab === 'overview' && stats && (
         <div>
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6 mb-8">
-            {[
-              { label: 'Usuarios', value: stats.totalUsers, color: 'text-white' },
-              { label: 'Drones', value: stats.totalDrones, color: 'text-white' },
-              { label: 'Disponiveis', value: stats.availableDrones, color: 'text-green-400' },
-              { label: 'Total Entregas', value: stats.totalDeliveries, color: 'text-neon-blue' },
-              { label: 'Ativas', value: stats.activeDeliveries, color: 'text-yellow-400' },
-            ].map((c) => (
-              <div key={c.label} className="glass-card rounded-2xl p-6 text-center hover:neon-glow transition-all duration-300">
-                <p className="text-gray-400 text-sm mb-2">{c.label}</p>
-                <p className={`text-3xl lg:text-4xl font-bold ${c.color}`}>{c.value}</p>
-              </div>
-            ))}
+            {(() => {
+              const delivered = deliveries.filter((d) => d.status === 'entregue');
+              const totalRevenue = delivered.reduce((s, d) => s + (d.cost || 0), 0);
+              const canceled = deliveries.filter((d) => d.status === 'cancelado').length;
+              const completionRate = stats.totalDeliveries > 0 ? Math.round((delivered.length / stats.totalDeliveries) * 100) : 0;
+              const cards = [
+                { label: 'Usuarios', value: stats.totalUsers, color: 'text-white' },
+                { label: 'Drones', value: stats.totalDrones, color: 'text-white' },
+                { label: 'Disponiveis', value: stats.availableDrones, color: 'text-green-400' },
+                { label: 'Total Entregas', value: stats.totalDeliveries, color: 'text-neon-blue' },
+                { label: 'Ativas', value: stats.activeDeliveries, color: 'text-yellow-400' },
+                { label: 'Faturamento', value: `R$ ${totalRevenue.toFixed(2)}`, color: 'text-emerald-400' },
+                { label: 'Conclusao', value: `${completionRate}%`, color: 'text-cyan-400' },
+                { label: 'Canceladas', value: canceled, color: 'text-red-400' },
+                { label: 'Receita Media', value: delivered.length > 0 ? `R$ ${(totalRevenue / delivered.length).toFixed(2)}` : 'R$ 0,00', color: 'text-purple-400' },
+                { label: 'Drones Ociosos', value: stats.availableDrones, color: 'text-green-400' },
+              ];
+              return cards.map((c) => (
+                <div key={c.label} className="glass-card rounded-2xl p-6 text-center hover:neon-glow transition-all duration-300">
+                  <p className="text-gray-400 text-sm mb-2">{c.label}</p>
+                  <p className={`text-3xl lg:text-4xl font-bold ${c.color}`}>{c.value}</p>
+                </div>
+              ));
+            })()}
           </div>
 
           <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 mb-8">
@@ -377,6 +391,7 @@ export default function AdminDashboard() {
                           <option value="disponivel">Disponivel</option>
                           <option value="em_entrega">Em Entrega</option>
                           <option value="carregando">Carregando</option>
+                          <option value="manutencao">Manutencao</option>
                         </select>
                       </div>
                     </div>
@@ -394,8 +409,32 @@ export default function AdminDashboard() {
                       </div>
                       <div className="flex items-center gap-3">
                         <span className={`text-xs px-3 py-1.5 rounded-full font-medium ${statusConf[drone.status] || ''}`}>
-                          {drone.status === 'disponivel' ? 'Disponivel' : drone.status === 'em_entrega' ? 'Em Entrega' : 'Carregando'}
+                          {drone.status === 'disponivel' ? 'Disponivel' : drone.status === 'em_entrega' ? 'Em Entrega' : drone.status === 'manutencao' ? 'Manutencao' : 'Carregando'}
                         </span>
+                        {drone.status !== 'manutencao' && drone.status !== 'em_entrega' && (
+                          <button onClick={async () => {
+                            try {
+                              await api.admin.maintenanceDrone(drone.id, 'start');
+                              showMsg('success', `${drone.name} enviado para manutencao`);
+                              setDrones((prev) => prev.map((d) => d.id === drone.id ? { ...d, status: 'manutencao' } : d));
+                            } catch (err) { showMsg('error', err.message); }
+                          }}
+                            className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all" title="Enviar para manutencao">
+                            <AlertCircle className="w-4 h-4" />
+                          </button>
+                        )}
+                        {drone.status === 'manutencao' && (
+                          <button onClick={async () => {
+                            try {
+                              const res = await api.admin.maintenanceDrone(drone.id, 'end');
+                              showMsg('success', `${drone.name} voltou a operacao`);
+                              setDrones((prev) => prev.map((d) => d.id === drone.id ? { ...d, status: 'disponivel', battery: 100 } : d));
+                            } catch (err) { showMsg('error', err.message); }
+                          }}
+                            className="p-2 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-all" title="Finalizar manutencao">
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
+                        )}
                         <button onClick={() => startEditDrone(drone)}
                           className="p-2 rounded-lg bg-neon-blue/10 text-neon-blue hover:bg-neon-blue/20 transition-all" title="Editar drone">
                           <Cpu className="w-4 h-4" />

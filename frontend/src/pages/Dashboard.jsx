@@ -5,18 +5,22 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { api } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardBanner from '../components/illustrations/DashboardBanner';
+import WeatherWidget from '../components/WeatherWidget';
 
 const PIE_COLORS = ['#00d4ff', '#7b61ff', '#ffd93d', '#ff6b6b', '#6bcb77', '#4d96ff'];
 
 const statusLabels = {
-  pendente: 'Pendente', em_andamento: 'Em Andamento', coletado: 'Coletado',
-  em_transito: 'Em Transito', proximo_da_entrega: 'Proximo', entregue: 'Entregue', cancelado: 'Cancelado',
+  pedido_criado: 'Pedido Criado', aguardando_aprovacao: 'Aguardando Aprovacao',
+  drone_selecionado: 'Drone Selecionado', preparando_coleta: 'Preparando Coleta',
+  coleta_realizada: 'Coleta Realizada', em_rota: 'Em Rota',
+  proximo_ao_destino: 'Proximo ao Destino', entregue: 'Entregue', cancelado: 'Cancelado',
 };
 
 const statusColors = {
-  pendente: 'bg-yellow-500/20 text-yellow-400', em_andamento: 'bg-blue-500/20 text-blue-400',
-  coletado: 'bg-purple-500/20 text-purple-400', em_transito: 'bg-cyan-500/20 text-cyan-400',
-  proximo_da_entrega: 'bg-green-500/20 text-green-400', entregue: 'bg-emerald-500/20 text-emerald-400',
+  pedido_criado: 'bg-gray-500/20 text-gray-400', aguardando_aprovacao: 'bg-yellow-500/20 text-yellow-400',
+  drone_selecionado: 'bg-blue-500/20 text-blue-400', preparando_coleta: 'bg-purple-500/20 text-purple-400',
+  coleta_realizada: 'bg-cyan-500/20 text-cyan-400', em_rota: 'bg-indigo-500/20 text-indigo-400',
+  proximo_ao_destino: 'bg-green-500/20 text-green-400', entregue: 'bg-emerald-500/20 text-emerald-400',
   cancelado: 'bg-red-500/20 text-red-400',
 };
 
@@ -108,6 +112,8 @@ export default function Dashboard() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6 lg:gap-8 mb-8">
+        <WeatherWidget />
+
         <div className="lg:col-span-2 glass-card rounded-2xl p-6 lg:p-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">

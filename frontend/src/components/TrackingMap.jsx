@@ -174,6 +174,8 @@ export default function TrackingMap({ base = 'Passo Fundo', origin, destination,
     mapInstance.current.fitBounds(bounds, { padding: [50, 50] });
   }, [base, origin, destination]);
 
+  const lastProgressRef = useRef(0);
+
   useEffect(() => {
     if (!droneMarker.current || !traveledLine.current) return;
 
@@ -182,12 +184,19 @@ export default function TrackingMap({ base = 'Passo Fundo', origin, destination,
     const d = cityCoords[destination?.toLowerCase()];
     if (!b || !o || !d) return;
 
+    const diff = Math.abs(progress - lastProgressRef.current);
+    if (diff < 1) {
+      setDisplayPct(Math.round(progress));
+      return;
+    }
+
     const target = Math.min(progress, 100) / 100;
     const isSameBases = base?.toLowerCase() === origin?.toLowerCase();
     const pos = getDronePos(progress, b, o, d, isSameBases);
     moveDrone(pos.p, pos.fromCoords, pos.toCoords, progress);
     setDisplayPct(Math.round(target * 100));
     currentRef.current = target;
+    lastProgressRef.current = progress;
   }, [progress, base, origin, destination]);
 
   const originName = origin || '—';

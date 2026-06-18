@@ -82,11 +82,7 @@ export default function Login() {
           </Link>
         </p>
 
-        <div className="mt-8 p-5 rounded-2xl bg-white/5 text-sm text-gray-500 leading-relaxed">
-          <p className="mb-2 text-gray-400 font-medium">Credenciais de teste:</p>
-          <p>Admin: admin@dronexpress.com / admin123</p>
-          <p>ou cadastre um novo usuário</p>
-        </div>
+
       </div>
     </div>
   );

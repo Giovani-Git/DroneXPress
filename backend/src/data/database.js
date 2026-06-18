@@ -53,7 +53,7 @@ function load() {
 
   // Reset drones stuck in 'em_entrega' with no active delivery
   if (data.drones && data.deliveries) {
-    const activeStatuses = ['em_andamento', 'coletado', 'em_transito', 'proximo_da_entrega'];
+    const activeStatuses = ['drone_selecionado', 'preparando_coleta', 'coleta_realizada', 'em_rota', 'proximo_ao_destino'];
     const activeDroneIds = new Set(
       data.deliveries.filter((d) => activeStatuses.includes(d.status) && d.drone_id).map((d) => d.drone_id)
     );

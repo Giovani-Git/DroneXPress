@@ -6,6 +6,7 @@ const droneRoutes = require('./routes/drones');
 const deliveryRoutes = require('./routes/deliveries');
 const adminRoutes = require('./routes/admin');
 const reportRoutes = require('./routes/reports');
+const operationRoutes = require('./routes/operations');
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/drones', droneRoutes);
 app.use('/api/deliveries', deliveryRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/operations', operationRoutes);
 app.use('/api/reports', reportRoutes);
 
 app.use((req, res) => {

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MessageSquare, ChevronLeft, Clock, CheckCircle, XCircle, Eye, Trash2 } from 'lucide-react';
+import { MessageSquare, ChevronLeft, Clock, CheckCircle, XCircle, Eye, Trash2, User } from 'lucide-react';
 import { api } from '../api';
+import { useAuth } from '../contexts/AuthContext';
 
 const typeLabels = {
   atraso: 'Atraso na entrega', cancelar: 'Quero cancelar',
@@ -12,6 +13,7 @@ const typeLabels = {
 };
 
 export default function MyReports() {
+  const { user } = useAuth();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
@@ -38,17 +40,21 @@ export default function MyReports() {
           <MessageSquare className="w-6 h-6 text-amber-400" />
         </div>
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-white tracking-tight">Meus Reports</h1>
-          <p className="text-gray-400 text-base mt-1">Acompanhe seus reports e respostas da equipe</p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-white tracking-tight">{user?.role === 'admin' ? 'Reports dos Usuarios' : 'Meus Reports'}</h1>
+          <p className="text-gray-400 text-base mt-1">{user?.role === 'admin' ? 'Visualize todos os reports enviados pelos usuarios' : 'Acompanhe seus reports e respostas da equipe'}</p>
         </div>
       </div>
 
       {reports.length === 0 ? (
         <div className="glass-card rounded-3xl p-16 text-center">
-          <MessageSquare className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg mb-2">Nenhum reporte enviado</p>
-          <p className="text-gray-600 text-base mb-6">Va em uma entrega e use "Reportar Problema" para abrir um chamado.</p>
-          <Link to="/deliveries" className="inline-flex px-6 py-3 rounded-xl gradient-bg text-white font-medium text-base hover:opacity-90 transition-all">
+          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 flex items-center justify-center mx-auto mb-6">
+            <MessageSquare className="w-10 h-10 text-amber-400/60" />
+          </div>
+          <h3 className="text-white text-xl font-semibold mb-1">Nenhum reporte enviado</h3>
+          <p className="text-gray-500 text-sm max-w-md mx-auto leading-relaxed mb-8">
+            Se algo der errado com uma entrega, voce pode abrir um chamado na pagina de detalhes da entrega ou pelo Suporte.
+          </p>
+          <Link to="/deliveries" className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl gradient-bg text-white font-semibold text-base hover:opacity-90 transition-all">
             Ver Minhas Entregas
           </Link>
         </div>
@@ -79,6 +85,12 @@ export default function MyReports() {
                 {isOpen && (
                   <div className="px-6 pb-6 pt-3 border-t border-white/5">
                     <div className="grid sm:grid-cols-2 gap-5 mb-6 text-base">
+                      {user?.role === 'admin' && r.user_name && (
+                        <div>
+                          <p className="text-gray-500 text-sm mb-1">Usuario</p>
+                          <p className="text-white text-base flex items-center gap-2"><User className="w-4 h-4 text-neon-blue" /> {r.user_name}</p>
+                        </div>
+                      )}
                       <div>
                         <p className="text-gray-500 text-sm mb-1">Tipo</p>
                         <p className="text-white text-base">{typeLabels[r.type] || r.typeLabel || r.type}</p>

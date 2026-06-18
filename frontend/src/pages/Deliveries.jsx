@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, MapPin, ChevronRight, Package, CheckCircle, Clock, Truck } from 'lucide-react';
+import { Plus, MapPin, ChevronRight, Package, CheckCircle, Clock, Truck, Cpu } from 'lucide-react';
 import { api } from '../api';
 
 export default function Deliveries() {
@@ -15,31 +15,37 @@ export default function Deliveries() {
   }, []);
 
   const statusColors = {
-    pendente: 'bg-yellow-500/20 text-yellow-400',
-    em_andamento: 'bg-blue-500/20 text-blue-400',
-    coletado: 'bg-purple-500/20 text-purple-400',
-    em_transito: 'bg-cyan-500/20 text-cyan-400',
-    proximo_da_entrega: 'bg-green-500/20 text-green-400',
+    pedido_criado: 'bg-gray-500/20 text-gray-400',
+    aguardando_aprovacao: 'bg-yellow-500/20 text-yellow-400',
+    drone_selecionado: 'bg-blue-500/20 text-blue-400',
+    preparando_coleta: 'bg-purple-500/20 text-purple-400',
+    coleta_realizada: 'bg-cyan-500/20 text-cyan-400',
+    em_rota: 'bg-indigo-500/20 text-indigo-400',
+    proximo_ao_destino: 'bg-green-500/20 text-green-400',
     entregue: 'bg-emerald-500/20 text-emerald-400',
     cancelado: 'bg-red-500/20 text-red-400',
   };
 
   const statusLabels = {
-    pendente: 'Pendente',
-    em_andamento: 'Em Andamento',
-    coletado: 'Coletado',
-    em_transito: 'Em Transito',
-    proximo_da_entrega: 'Proximo da Entrega',
+    pedido_criado: 'Pedido Criado',
+    aguardando_aprovacao: 'Aguardando Aprovacao',
+    drone_selecionado: 'Drone Selecionado',
+    preparando_coleta: 'Preparando Coleta',
+    coleta_realizada: 'Coleta Realizada',
+    em_rota: 'Em Rota',
+    proximo_ao_destino: 'Proximo ao Destino',
     entregue: 'Entregue',
     cancelado: 'Cancelado',
   };
 
   const statusIcons = {
-    pendente: Clock,
-    em_andamento: Truck,
-    coletado: Package,
-    em_transito: Truck,
-    proximo_da_entrega: MapPin,
+    pedido_criado: Clock,
+    aguardando_aprovacao: Clock,
+    drone_selecionado: Cpu,
+    preparando_coleta: Package,
+    coleta_realizada: Package,
+    em_rota: Truck,
+    proximo_ao_destino: MapPin,
     entregue: CheckCircle,
     cancelado: Package,
   };
@@ -70,7 +76,7 @@ export default function Deliveries() {
         </div>
 
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-          {['all', 'pendente', 'em_andamento', 'coletado', 'em_transito', 'proximo_da_entrega', 'entregue'].map((s) => (
+          {['all', 'pedido_criado', 'drone_selecionado', 'coleta_realizada', 'em_rota', 'proximo_ao_destino', 'entregue'].map((s) => (
             <button
               key={s}
               onClick={() => setFilter(s)}
@@ -85,11 +91,19 @@ export default function Deliveries() {
 
         {filtered.length === 0 ? (
           <div className="glass-card rounded-3xl p-16 text-center">
-            <Package className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg mb-4">Nenhuma entrega encontrada</p>
-            <Link to="/deliveries/new" className="text-neon-blue hover:underline font-medium">
-              Solicitar entrega &rarr;
-            </Link>
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-neon-blue/10 to-purple-500/10 flex items-center justify-center mx-auto mb-6">
+              <Package className="w-10 h-10 text-neon-blue/60" />
+            </div>
+            <h3 className="text-white text-xl font-semibold mb-2">Nenhuma entrega {filter !== 'all' ? 'nesse status' : 'ainda'}</h3>
+            <p className="text-gray-500 text-base mb-8 max-w-md mx-auto leading-relaxed">
+              {filter !== 'all' ? 'Tente selecionar outro filtro para ver mais resultados.' : 'Solicite sua primeira entrega e acompanhe tudo em tempo real pelo mapa interativo.'}
+            </p>
+            {filter === 'all' && (
+              <Link to="/deliveries/new"
+                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl gradient-bg text-white font-semibold hover:opacity-90 transition-all text-base">
+                <Plus className="w-5 h-5" /> Solicitar Entrega
+              </Link>
+            )}
           </div>
         ) : (
           <div className="space-y-4">

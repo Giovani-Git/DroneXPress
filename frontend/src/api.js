@@ -79,7 +79,8 @@ export const api = {
     weight,
     drone_id,
     description,
-    company
+    company,
+    company_cnpj
   ) =>
     request('POST', '/deliveries', {
       origin,
@@ -88,6 +89,7 @@ export const api = {
       drone_id,
       description,
       company,
+      company_cnpj,
     }),
 
   getDeliveries: () =>
@@ -111,6 +113,21 @@ export const api = {
   deleteReport: (id) =>
     request('DELETE', `/reports/${id}`),
 
+  getOperations: () =>
+    request('GET', '/operations'),
+
+  getFinancial: () =>
+    request('GET', '/operations/financial'),
+
+  getRankings: () =>
+    request('GET', '/operations/rankings'),
+
+  getSustainability: () =>
+    request('GET', '/operations/sustainability'),
+
+  exportData: (type) =>
+    request('GET', `/operations/export/${type}`),
+
   admin: {
     getUsers: () =>
       request('GET', '/admin/users'),
@@ -126,6 +143,9 @@ export const api = {
 
     updateDrone: (id, data) =>
       request('PUT', `/admin/drones/${id}`, data),
+
+    maintenanceDrone: (id, action) =>
+      request('POST', `/admin/drones/${id}/maintenance`, { action }),
 
     getDeliveries: () =>
       request('GET', '/admin/deliveries'),

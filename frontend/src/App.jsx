@@ -16,6 +16,9 @@ import AdminDashboard from './pages/AdminDashboard';
 import Profile from './pages/Profile';
 import Support from './pages/Support';
 import MyReports from './pages/MyReports';
+import Partners from './pages/Partners';
+import OperationsCenter from './pages/OperationsCenter';
+import Company from './pages/Company';
 
 function AuthLayout({ children }) {
   return <AppLayout>{children}</AppLayout>;
@@ -39,6 +42,9 @@ export default function App() {
           <Route path="/admin" element={<ProtectedRoute adminOnly><AuthLayout><AdminDashboard /></AuthLayout></ProtectedRoute>} />
           <Route path="/support" element={<ProtectedRoute><AuthLayout><Support /></AuthLayout></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><AuthLayout><MyReports /></AuthLayout></ProtectedRoute>} />
+          <Route path="/parceiros" element={<ProtectedRoute><AuthLayout><Partners /></AuthLayout></ProtectedRoute>} />
+          <Route path="/operations" element={<ProtectedRoute><AuthLayout><OperationsCenter /></AuthLayout></ProtectedRoute>} />
+          <Route path="/empresa" element={<ProtectedRoute><AuthLayout><Company /></AuthLayout></ProtectedRoute>} />
         </Routes>
         </NotificationProvider>
       </AuthProvider>

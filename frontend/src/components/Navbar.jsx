@@ -49,34 +49,39 @@ export default function Navbar() {
             DroneXPress
           </Link>
 
-          <div className="hidden md:flex items-center gap-8">
-            {isLanding && landingLinks.map((l) => (
-              <a key={l.href} href={l.href} className="text-gray-400 hover:text-neon-blue transition-colors duration-200 text-sm font-medium">
+          <div className="hidden md:flex items-center gap-6">
+            {isLanding && !user && landingLinks.map((l) => (
+              <a key={l.href} href={l.href} className="text-gray-400 hover:text-neon-blue transition-colors duration-200 text-sm font-medium whitespace-nowrap">
                 {l.label}
               </a>
             ))}
-            {navLinks.map((l) => (
+            {isLanding && user && (
+              <Link to="/dashboard" className="text-gray-400 hover:text-neon-blue transition-colors text-sm font-medium">
+                Dashboard
+              </Link>
+            )}
+            {!isLanding && navLinks.map((l) => (
               <Link key={l.to} to={l.to} className={`${linkClass(l.to)} text-sm font-medium`}>
                 {l.label}
               </Link>
             ))}
-            <button onClick={toggleTheme} className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all" title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}>
+            <button onClick={toggleTheme} className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all flex-shrink-0" title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}>
               {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
-            {user && (
-              <span className="text-gray-500 text-sm">{user.name}</span>
-            )}
             {user ? (
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-5 py-2.5 text-sm rounded-xl border border-neon-blue/30 text-neon-blue hover:bg-neon-blue/10 transition-all duration-200 font-medium"
-              >
-                <LogOut className="w-4 h-4" /> Sair
-              </button>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <span className="text-gray-500 text-sm truncate max-w-[120px]">{user.name}</span>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-4 py-2 text-sm rounded-xl border border-neon-blue/30 text-neon-blue hover:bg-neon-blue/10 transition-all duration-200 font-medium"
+                >
+                  <LogOut className="w-4 h-4" /> Sair
+                </button>
+              </div>
             ) : (
               <Link
                 to="/login"
-                className="flex items-center gap-2 px-5 py-2.5 text-sm rounded-xl gradient-bg text-white font-medium hover:opacity-90 transition-all duration-200"
+                className="flex items-center gap-2 px-5 py-2.5 text-sm rounded-xl gradient-bg text-white font-medium hover:opacity-90 transition-all duration-200 flex-shrink-0"
               >
                 <User className="w-4 h-4" /> Entrar
               </Link>
@@ -93,21 +98,27 @@ export default function Navbar() {
 
         {menuOpen && (
           <div className="md:hidden pb-6 space-y-1 border-t border-white/5 pt-4">
-            {isLanding && landingLinks.map((l) => (
+            {isLanding && !user && landingLinks.map((l) => (
               <a key={l.href} href={l.href} className="block px-4 py-2.5 text-gray-400 hover:text-neon-blue transition-colors text-sm" onClick={() => setMenuOpen(false)}>
                 {l.label}
               </a>
             ))}
-            {navLinks.map((l) => (
+            {isLanding && user && (
+              <Link to="/dashboard" className="block px-4 py-2.5 text-gray-300 hover:text-neon-blue text-sm" onClick={() => setMenuOpen(false)}>
+                Dashboard
+              </Link>
+            )}
+            {!isLanding && navLinks.map((l) => (
               <Link key={l.to} to={l.to} className="block px-4 py-2.5 text-gray-300 hover:text-neon-blue transition-colors text-sm" onClick={() => setMenuOpen(false)}>
                 {l.label}
               </Link>
             ))}
-            {user ? (
+            {user && (
               <button onClick={handleLogout} className="flex items-center gap-2 w-full text-left px-4 py-2.5 text-red-400 text-sm mt-2">
                 <LogOut className="w-4 h-4" /> Sair
               </button>
-            ) : (
+            )}
+            {!user && (
               <Link to="/login" className="flex items-center gap-2 px-4 py-2.5 text-neon-blue text-sm mt-2" onClick={() => setMenuOpen(false)}>
                 <User className="w-4 h-4" /> Entrar
               </Link>

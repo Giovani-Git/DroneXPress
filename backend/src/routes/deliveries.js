@@ -43,7 +43,7 @@ function droneCost(distance, weight, droneSpeed) {
   return Math.round(adjusted * 100) / 100;
 }
 
-const statusFlow = ['pendente', 'em_andamento', 'coletado', 'em_transito', 'proximo_da_entrega', 'entregue', 'cancelado'];
+const statusFlow = ['pedido_criado', 'aguardando_aprovacao', 'drone_selecionado', 'preparando_coleta', 'coleta_realizada', 'em_rota', 'proximo_ao_destino', 'entregue', 'cancelado'];
 
 function getAddressString(addr) {
   if (!addr) return '';
@@ -123,7 +123,7 @@ router.post('/simulate', authMiddleware, (req, res) => {
 });
 
 router.post('/', authMiddleware, (req, res) => {
-  const { origin, destination, weight, drone_id, description, company } = req.body;
+  const { origin, destination, weight, drone_id, description, company, company_cnpj } = req.body;
   if (!origin?.cidade || !destination?.cidade || !weight || weight <= 0 || weight > 100) {
     return res.status(400).json({ error: 'Origem, destino e peso (1-100kg) sao obrigatorios' });
   }
@@ -160,9 +160,10 @@ router.post('/', authMiddleware, (req, res) => {
     cost,
     description: description || '',
     company: company || '',
+    company_cnpj: company_cnpj || '',
     leg1Dist: route.leg1,
     leg2Dist: route.leg2,
-    status: drone ? 'em_andamento' : 'pendente',
+    status: drone ? 'drone_selecionado' : 'pedido_criado',
     drone_id: drone ? drone.id : null,
     drone_name: drone ? drone.name : null,
     drone_model: drone ? drone.model : null,
@@ -232,6 +233,17 @@ router.patch('/:id', authMiddleware, (req, res) => {
       if (nextIdx < currentIdx) return res.status(400).json({ error: 'Nao e possivel voltar o status' });
       delivery.status = status;
       if (status === 'entregue') freeDrone(delivery, db);
+
+      // Battery drain
+      if (delivery.drone_id) {
+        const drone = db.drones.find((d) => d.id === delivery.drone_id);
+        if (drone && drone.status !== 'manutencao') {
+          const progressPct = calcProgress(status);
+          const batteryDrain = Math.round((progressPct / 100) * 30);
+          drone.battery = Math.max(0, 100 - batteryDrain);
+          if (drone.battery <= 0) drone.battery = 5;
+        }
+      }
     }
   }
 

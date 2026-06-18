@@ -34,6 +34,53 @@ router.put('/drones/:id', (req, res) => {
   res.json({ message: 'Drone atualizado com sucesso' });
 });
 
+router.post('/drones/:id/maintenance', (req, res) => {
+  const db = getDB();
+  const drone = db.drones.find((d) => d.id === req.params.id);
+  if (!drone) return res.status(404).json({ error: 'Drone nao encontrado' });
+
+  const { action } = req.body;
+  if (action === 'start') {
+    if (drone.status === 'em_entrega') return res.status(400).json({ error: 'Drone em entrega nao pode ir para manutencao' });
+    drone.status = 'manutencao';
+  } else if (action === 'end') {
+    drone.status = 'disponivel';
+    drone.battery = 100;
+  } else {
+    return res.status(400).json({ error: 'Acao invalida. Use start ou end' });
+  }
+
+  save();
+  res.json({ message: `Manutencao ${action === 'start' ? 'iniciada' : 'finalizada'}`, drone });
+});
+
+router.put('/deliveries/:id', (req, res) => {
+  const db = getDB();
+  const delivery = db.deliveries.find((d) => d.id === req.params.id);
+  if (!delivery) return res.status(404).json({ error: 'Entrega nao encontrada' });
+
+  const { status } = req.body;
+  if (status !== undefined) {
+    delivery.status = status;
+    if (['entregue', 'cancelado'].includes(status)) freeDrone(delivery, db);
+
+    if (delivery.drone_id) {
+      const drone = db.drones.find((d) => d.id === delivery.drone_id);
+      if (drone && drone.status !== 'manutencao') {
+        const progressMap = ['pedido_criado', 'aguardando_aprovacao', 'drone_selecionado', 'preparando_coleta', 'coleta_realizada', 'em_rota', 'proximo_ao_destino', 'entregue', 'cancelado'];
+        const idx = progressMap.indexOf(status);
+        const progressPct = idx >= 0 ? Math.round((idx / (progressMap.indexOf('entregue'))) * 100) : 0;
+        const batteryDrain = Math.round((progressPct / 100) * 30);
+        drone.battery = Math.max(5, 100 - batteryDrain);
+      }
+    }
+  }
+
+  save();
+  const user = db.users.find((u) => u.id === delivery.user_id);
+  res.json({ ...delivery, user_name: user ? user.name : 'Desconhecido' });
+});
+
 router.get('/deliveries', (req, res) => {
   const db = getDB();
   const deliveries = db.deliveries

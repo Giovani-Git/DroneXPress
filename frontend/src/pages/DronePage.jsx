@@ -8,6 +8,7 @@ const statusConfig = {
   disponivel: { color: 'bg-green-500/20 text-green-400', label: 'Disponivel' },
   em_entrega: { color: 'bg-blue-500/20 text-blue-400', label: 'Em Entrega' },
   carregando: { color: 'bg-yellow-500/20 text-yellow-400', label: 'Carregando' },
+  manutencao: { color: 'bg-red-500/20 text-red-400', label: 'Manutencao' },
 };
 
 export default function DronePage() {

@@ -4,6 +4,7 @@ import { MapPin, Navigation, Package, Truck, Clock, DollarSign, Cpu, Calendar, C
 import { api } from '../api';
 import TrackingMap from '../components/TrackingMap';
 import { useNotifications } from '../contexts/NotificationContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function DeliveryDetail() {
   const { id } = useParams();
@@ -20,9 +21,22 @@ export default function DeliveryDetail() {
   const [cancelError, setCancelError] = useState('');
 
   const { addNotification } = useNotifications();
+  const { user } = useAuth();
   const [simProgress, setSimProgress] = useState(0);
   const [localStatus, setLocalStatus] = useState(null);
   const milestonesRef = useRef({});
+  const pendingTimerRef = useRef(null);
+
+  function getBaseProgress(status, isPf) {
+    if (isPf) {
+      return { pedido_criado: 0, aguardando_aprovacao: 0, drone_selecionado: 0,
+        preparando_coleta: 0, coleta_realizada: 5, em_rota: 30,
+        proximo_ao_destino: 60, entregue: 100, cancelado: 0 }[status] || 0;
+    }
+    return { pedido_criado: 0, aguardando_aprovacao: 0, drone_selecionado: 10,
+      preparando_coleta: 15, coleta_realizada: 20, em_rota: 45,
+      proximo_ao_destino: 70, entregue: 100, cancelado: 0 }[status] || 0;
+  }
 
   useEffect(() => {
     api.getDelivery(id).then((d) => {
@@ -30,24 +44,49 @@ export default function DeliveryDetail() {
       setLocalStatus(d.status);
       milestonesRef.current = {};
 
+      const originCity = d.originAddress?.cidade || d.origin;
+      const pf = originCity?.toLowerCase() === 'passo fundo';
+      const baseProgress = getBaseProgress(d.status, pf);
+      setSimProgress(baseProgress);
+
+      if ((d.status === 'pedido_criado' || d.status === 'aguardando_aprovacao') && d.drone_id) {
+        pendingTimerRef.current = setTimeout(async () => {
+          try {
+            await api.updateDeliveryStatus(d.id, 'drone_selecionado');
+            setLocalStatus('drone_selecionado');
+            const bp = getBaseProgress('drone_selecionado', pf);
+            setSimProgress(bp);
+            const sk = `drone_sim_${d.id}_start`;
+            const offset = (bp / 0.35) * 1000;
+            localStorage.setItem(sk, Date.now() - offset);
+          } catch (err) {
+            console.error('Erro ao iniciar entrega:', err);
+          }
+        }, 15000);
+      }
+
       const startKey = `drone_sim_${d.id}_start`;
-      const existing = localStorage.getItem(startKey);
-      if (!existing && ['em_andamento', 'coletado', 'em_transito', 'proximo_da_entrega'].includes(d.status)) {
-        const pct = d.progress || 0;
-        const backdatedStart = Date.now() - (pct / 0.35 * 1000);
-        localStorage.setItem(startKey, backdatedStart);
+      if (['drone_selecionado', 'preparando_coleta', 'coleta_realizada', 'em_rota', 'proximo_ao_destino'].includes(d.status)) {
+        const offset = (baseProgress / 0.35) * 1000;
+        localStorage.setItem(startKey, Date.now() - offset);
+      } else {
+        localStorage.removeItem(startKey);
       }
     }).catch((err) => console.error('Erro ao carregar entrega:', err)).finally(() => setLoading(false));
+
+    return () => {
+      if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
+    };
   }, [id]);
 
   useEffect(() => {
-    if (!delivery || ['entregue', 'cancelado'].includes(localStatus)) return;
+    if (!delivery || ['pedido_criado', 'aguardando_aprovacao', 'entregue', 'cancelado'].includes(localStatus)) return;
 
-    const activeStatuses = ['em_andamento', 'coletado', 'em_transito', 'proximo_da_entrega'];
+    const activeStatuses = ['drone_selecionado', 'preparando_coleta', 'coleta_realizada', 'em_rota', 'proximo_ao_destino'];
     if (Object.keys(milestonesRef.current).length === 0 && activeStatuses.includes(localStatus)) {
-      const statusIdx = ['pendente', 'em_andamento', 'coletado', 'em_transito', 'proximo_da_entrega', 'entregue'];
+      const statusIdx = ['pedido_criado', 'drone_selecionado', 'coleta_realizada', 'em_rota', 'proximo_ao_destino', 'entregue'];
       const idx = statusIdx.indexOf(localStatus);
-      if (idx >= 1) milestonesRef.current.em_andamento = true;
+      if (idx >= 1) milestonesRef.current.selecionado = true;
       if (idx >= 2) milestonesRef.current.coletado = true;
       if (idx >= 3) milestonesRef.current.transito = true;
       if (idx >= 4) milestonesRef.current.proximo = true;
@@ -57,8 +96,7 @@ export default function DeliveryDetail() {
     const startKey = `drone_sim_${delivery.id}_start`;
     let startTime = localStorage.getItem(startKey);
     if (!startTime) {
-      const pct = delivery.progress || 0;
-      startTime = Date.now() - (pct / SPEED * 1000);
+      startTime = Date.now();
       localStorage.setItem(startKey, startTime);
     }
     startTime = parseFloat(startTime);
@@ -70,21 +108,29 @@ export default function DeliveryDetail() {
       const pct = Math.min(elapsed * SPEED, 100);
       setSimProgress(pct);
 
-      if (pct >= 33 && !milestonesRef.current.coletado) {
+      const originCity = delivery.originAddress?.cidade || delivery.origin;
+      const pf = originCity?.toLowerCase() === 'passo fundo';
+      const tColeta = pf ? 5 : 20;
+      const tRota = pf ? 30 : 45;
+      const tProximo = pf ? 60 : 70;
+
+      if (pct >= tColeta && !milestonesRef.current.coletado) {
         milestonesRef.current.coletado = true;
-        setLocalStatus('coletado');
+        setLocalStatus('coleta_realizada');
         addNotification({ icon: 'coletado', title: 'Coleta realizada!', message: 'O drone pegou seu pacote e esta a caminho do destino.' });
-        api.updateDeliveryStatus(delivery.id, 'coletado').catch((err) => console.error('Erro ao atualizar status coletado:', err));
+        api.updateDeliveryStatus(delivery.id, 'coleta_realizada').catch((err) => console.error('Erro ao atualizar status coleta_realizada:', err));
       }
 
-      if (pct >= 55 && !milestonesRef.current.transito) {
+      if (pct >= tRota && !milestonesRef.current.transito) {
         milestonesRef.current.transito = true;
-        api.updateDeliveryStatus(delivery.id, 'em_transito').catch((err) => console.error('Erro ao atualizar status em_transito:', err));
+        setLocalStatus('em_rota');
+        api.updateDeliveryStatus(delivery.id, 'em_rota').catch((err) => console.error('Erro ao atualizar status em_rota:', err));
       }
 
-      if (pct >= 75 && !milestonesRef.current.proximo) {
+      if (pct >= tProximo && !milestonesRef.current.proximo) {
         milestonesRef.current.proximo = true;
-        api.updateDeliveryStatus(delivery.id, 'proximo_da_entrega').catch((err) => console.error('Erro ao atualizar status proximo_da_entrega:', err));
+        setLocalStatus('proximo_ao_destino');
+        api.updateDeliveryStatus(delivery.id, 'proximo_ao_destino').catch((err) => console.error('Erro ao atualizar status proximo_ao_destino:', err));
       }
 
       if (pct >= 100 && !milestonesRef.current.entregue) {
@@ -125,26 +171,24 @@ export default function DeliveryDetail() {
   }
 
   const statusLabels = {
-    pendente: 'Pendente',
-    em_andamento: 'Em Andamento',
-    coletado: 'Coletado',
-    em_transito: 'Em Transito',
-    proximo_da_entrega: 'Proximo da Entrega',
+    pedido_criado: 'Pedido Criado',
+    aguardando_aprovacao: 'Aguardando Aprovacao',
+    drone_selecionado: 'Drone Selecionado',
+    preparando_coleta: 'Preparando Coleta',
+    coleta_realizada: 'Coleta Realizada',
+    em_rota: 'Em Rota',
+    proximo_ao_destino: 'Proximo ao Destino',
     entregue: 'Entregue',
     cancelado: 'Cancelado',
   };
 
-  const statusSteps = ['pendente', 'em_andamento', 'coletado', 'em_transito', 'proximo_da_entrega', 'entregue'];
+  const statusSteps = ['pedido_criado', 'drone_selecionado', 'coleta_realizada', 'em_rota', 'proximo_ao_destino', 'entregue'];
 
-  const statusBaseProgress = {
-    pendente: 0, em_andamento: 20, coletado: 40,
-    em_transito: 60, proximo_da_entrega: 80, entregue: 100, cancelado: 0,
-  };
   const stepPct = 100 / statusSteps.length;
   const statusColor = localStatus === 'entregue' ? 'bg-green-500/20 text-green-400'
     : localStatus === 'cancelado' ? 'bg-red-500/20 text-red-400'
     : 'bg-blue-500/20 text-blue-400';
-  const canCancel = localStatus && !['entregue', 'cancelado', 'pendente'].includes(localStatus);
+  const canCancel = localStatus && !['entregue', 'cancelado', 'pedido_criado'].includes(localStatus);
   const cancelFee = canCancel ? Math.round((5 + (simProgress / 100) * delivery.cost * 0.4) * 100) / 100 : 0;
 
   const originCity = delivery.originAddress?.cidade || delivery.origin;
@@ -159,7 +203,7 @@ export default function DeliveryDetail() {
     { label: 'Origem', value: delivery.origin, icon: MapPin, color: 'text-neon-blue' },
     { label: 'Destino', value: delivery.destination, icon: Navigation, color: 'text-purple-400' },
     { label: 'Descricao', value: delivery.description || '—', icon: Package, color: 'text-cyan-400' },
-    { label: 'Empresa', value: delivery.company || '—', icon: Truck, color: 'text-amber-400' },
+    { label: 'Empresa', value: delivery.company ? `${delivery.company}${delivery.company_cnpj ? ` (${delivery.company_cnpj})` : ''}` : '—', icon: Truck, color: 'text-amber-400' },
     { label: 'Distancia', value: `${delivery.distance} km`, icon: MapPin, color: 'text-neon-blue' },
     { label: 'Peso', value: `${delivery.weight} kg`, icon: Package, color: 'text-green-400' },
     { label: 'Tempo Estimado', value: `${delivery.estimated_time} min`, icon: Clock, color: 'text-neon-blue' },
@@ -192,10 +236,12 @@ export default function DeliveryDetail() {
                   Cancelar Entrega
                 </button>
               )}
-              <button onClick={() => { setShowReport(true); setReportError(''); setReportSent(false); setReportDesc(''); }}
-                className="px-4 py-2 rounded-xl border border-amber-500/30 text-amber-400 text-sm font-medium hover:bg-amber-500/10 transition-all flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" /> Reportar Problema
-              </button>
+              {user?.role !== 'admin' && (
+                <button onClick={() => { setShowReport(true); setReportError(''); setReportSent(false); setReportDesc(''); }}
+                  className="px-4 py-2 rounded-xl border border-amber-500/30 text-amber-400 text-sm font-medium hover:bg-amber-500/10 transition-all flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" /> Reportar Problema
+                </button>
+              )}
               <span className={`px-5 py-2 rounded-full text-sm font-medium ${statusColor} whitespace-nowrap`}>
                 {statusLabels[localStatus] || localStatus}
               </span>
@@ -251,11 +297,11 @@ export default function DeliveryDetail() {
             </div>
             <div className="flex justify-between mt-2">
               {statusSteps.map((step) => (
-                <span key={step} className={`text-[10px] lg:text-xs transition-colors duration-500 ${
+                <span key={step} className={`text-[9px] sm:text-[10px] lg:text-[11px] leading-tight transition-colors duration-500 text-center ${
                   statusSteps.indexOf(step) <= Math.floor(simProgress / stepPct)
-                    ? 'text-neon-blue' : 'text-gray-600'
+                    ? 'text-neon-blue' : 'text-gray-500'
                 }`}>
-                  {statusLabels[step]?.slice(0, 10)}
+                  {statusLabels[step] || step}
                 </span>
               ))}
             </div>
@@ -266,7 +312,7 @@ export default function DeliveryDetail() {
           base="Passo Fundo"
           origin={originCity}
           destination={destCity}
-          progress={simProgress}
+          progress={localStatus === 'pedido_criado' || localStatus === 'aguardando_aprovacao' ? 0 : simProgress}
         />
 
       {showCancel && (

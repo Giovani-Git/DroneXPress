@@ -3,9 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin, Navigation, Package, Truck, AlertCircle, Check, ArrowRight, Cpu, Gauge, Star, DollarSign, CreditCard } from 'lucide-react';
 import { api } from '../api';
 import { useNotifications } from '../contexts/NotificationContext';
-import { onlyDigits, onlyLetters, onlyNumbers, formatCEP } from '../utils/validation';
+import { onlyDigits, onlyLetters, onlyNumbers, formatCEP, formatCNPJ } from '../utils/validation';
 
 const CITY_OPTIONS = ['Passo Fundo', 'Marau', 'Carazinho', 'Soledade', 'Erechim', 'Caxias do Sul', 'Porto Alegre'];
+
+const cityCEP = {
+  'passo fundo': '99010-000', 'marau': '99150-000', 'carazinho': '99500-000',
+  'soledade': '99300-000', 'erechim': '99700-000', 'caxias do sul': '95010-000',
+  'porto alegre': '90010-000', 'sao paulo': '01001-000',
+};
 
 const emptyAddress = { rua: '', numero: '', bairro: '', cidade: '', cep: '' };
 
@@ -55,7 +61,9 @@ export default function NewDelivery() {
   const [destination, setDestination] = useState({ ...emptyAddress });
   const [weight, setWeight] = useState('');
   const [description, setDescription] = useState('');
-  const [company, setCompany] = useState('');
+  const [companyEnabled, setCompanyEnabled] = useState(false);
+  const [companyName, setCompanyName] = useState('');
+  const [companyCnpj, setCompanyCnpj] = useState('');
   const [step, setStep] = useState('form');
   const [simulation, setSimulation] = useState(null);
   const [selectedDrone, setSelectedDrone] = useState(null);
@@ -66,10 +74,22 @@ export default function NewDelivery() {
   const { addNotification } = useNotifications();
 
   function updateOrigin(field, value) {
-    setOrigin((prev) => ({ ...prev, [field]: value }));
+    setOrigin((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === 'cidade' && cityCEP[value.toLowerCase()] && !prev.cep) {
+        next.cep = cityCEP[value.toLowerCase()];
+      }
+      return next;
+    });
   }
   function updateDest(field, value) {
-    setDestination((prev) => ({ ...prev, [field]: value }));
+    setDestination((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === 'cidade' && cityCEP[value.toLowerCase()] && !prev.cep) {
+        next.cep = cityCEP[value.toLowerCase()];
+      }
+      return next;
+    });
   }
 
   async function handleSimulate(e) {
@@ -92,11 +112,11 @@ export default function NewDelivery() {
   async function handleConfirm() {
     setLoading(true);
     try {
-      const data = await api.createDelivery(origin, destination, parseFloat(weight), selectedDrone, description, company);
+      const data = await api.createDelivery(origin, destination, parseFloat(weight), selectedDrone, description, companyEnabled ? companyName : '', companyEnabled ? companyCnpj : '');
       addNotification({
-        icon: data.drone_id ? 'em_andamento' : 'pendente',
-        title: data.drone_id ? 'Entrega a caminho!' : 'Entrega solicitada',
-        message: `Sua entrega de ${data.origin} para ${data.destination} foi ${data.drone_id ? 'iniciada' : 'cadastrada'}. ${data.drone_id ? `Drone ${data.drone_name} a caminho.` : 'Aguardando drone disponivel.'}`,
+        icon: data.drone_id ? 'drone_selecionado' : 'pedido_criado',
+        title: data.drone_id ? 'Drone selecionado!' : 'Pedido criado',
+        message: `Sua entrega de ${data.origin} para ${data.destination} foi ${data.drone_id ? 'iniciada' : 'cadastrada'}. ${data.drone_id ? `Drone ${data.drone_name} selecionado.` : 'Aguardando drone disponivel.'}`,
       });
       navigate(`/deliveries/${data.id}`);
     } catch (err) {
@@ -172,9 +192,27 @@ export default function NewDelivery() {
               </div>
 
               <div className="mt-6">
-                <label className="block text-sm text-gray-400 mb-2">Empresa (opcional)</label>
-                <input type="text" value={company} onChange={(e) => setCompany(e.target.value)}
-                  className={inputClass} placeholder="Nome da empresa" />
+                <button type="button" onClick={() => setCompanyEnabled(!companyEnabled)}
+                  className={`w-full px-5 py-4 rounded-xl border text-left transition-all text-base flex items-center gap-3 ${companyEnabled ? 'bg-neon-blue/10 border-neon-blue/40' : 'bg-white/5 border-white/10 hover:border-white/20'}`}>
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${companyEnabled ? 'bg-neon-blue border-neon-blue' : 'border-gray-500'}`}>
+                    {companyEnabled && <span className="text-white text-xs font-bold">✓</span>}
+                  </div>
+                  <span className={companyEnabled ? 'text-white' : 'text-gray-400'}>Enviar como empresa</span>
+                </button>
+                {companyEnabled && (
+                  <div className="mt-4 space-y-4 animate-slide-up">
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-2">Nome da Empresa</label>
+                      <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)}
+                        className={inputClass} placeholder="Razao social" />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-2">CNPJ</label>
+                      <input type="text" value={companyCnpj} onChange={(e) => setCompanyCnpj(formatCNPJ(e.target.value))}
+                        className={inputClass} placeholder="00.000.000/0000-00" inputMode="numeric" maxLength={18} />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -351,10 +389,10 @@ export default function NewDelivery() {
                       <span className="text-white font-medium truncate max-w-[140px]">{description}</span>
                     </div>
                   )}
-                  {company && (
+                  {companyEnabled && companyName && (
                     <div className="flex justify-between">
                       <span className="text-gray-400">Empresa</span>
-                      <span className="text-white font-medium">{company}</span>
+                      <span className="text-white font-medium truncate max-w-[160px]">{companyName}{companyCnpj ? ` (${companyCnpj})` : ''}</span>
                     </div>
                   )}
                   <div className="flex justify-between">
